@@ -24,20 +24,20 @@ from master_panels import API_CALL_LATENCY_PANELS, QUANTILE_API_CALL_LATENCY_PAN
 
 
 def extended_copy(panels):
-  extended_panels = []
+    extended_panels = []
 
-  for panel in panels:
-    # copy of an original panel
-    extended_panels.append(deepcopy(panel))
+    for panel in panels:
+        # copy of an original panel
+        extended_panels.append(deepcopy(panel))
 
-    # secondary panel
-    # same criteria, different data source and starting point
-    panel.title = "[SECONDARY] " + panel.title
-    panel.dataSource = "$secondary_source"
-    panel.timeShift = "$timeshift"
-    extended_panels.append(panel)
+        # secondary panel
+        # same criteria, different data source and starting point
+        panel.title = "[SECONDARY] " + panel.title
+        panel.dataSource = "$secondary_source"
+        panel.timeShift = "$timeshift"
+        extended_panels.append(panel)
 
-  return extended_panels
+    return extended_panels
 
 
 dashboard = d.Dashboard(
@@ -57,14 +57,14 @@ dashboard = d.Dashboard(
         list=[
             d.SOURCE_TEMPLATE,
             g.Template(
-              name="secondary_source",
-              type="datasource",
-              query="prometheus",
+                name="secondary_source",
+                type="datasource",
+                query="prometheus",
             ),
             g.Template(
-              name="timeshift",
-              type="interval",
-              query="",
+                name="timeshift",
+                type="interval",
+                query="",
             ),
             g.Template(
                 name="etcd_type",
