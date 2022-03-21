@@ -143,6 +143,8 @@ func (ste *simpleExecutor) ExecuteTestSteps(ctx Context, steps []*api.Step) *err
 // ExecuteStep executes single test step based on provided step configuration.
 func (ste *simpleExecutor) ExecuteStep(ctx Context, step *api.Step) *errors.ErrorList {
 	klog.V(2).Infof("Step %q started", step.Name)
+	prometheus.PushStepCheckpointMetricsIfEnabled(step)
+
 	var wg wait.Group
 	stepResults := NewStepResult(step.Name)
 
