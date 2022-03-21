@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
+	"k8s.io/perf-tests/clusterloader2/api"
 	"k8s.io/perf-tests/clusterloader2/pkg/config"
 	clerrors "k8s.io/perf-tests/clusterloader2/pkg/errors"
 	"k8s.io/perf-tests/clusterloader2/pkg/flags"
@@ -64,6 +65,7 @@ func InitFlags(p *config.PrometheusConfig) {
 	flags.BoolEnvVar(&p.ScrapeNodeLocalDNS, "prometheus-scrape-node-local-dns", "PROMETHEUS_SCRAPE_NODE_LOCAL_DNS", false, "Whether to scrape node-local-dns pods.")
 	flags.BoolEnvVar(&p.ScrapeAnet, "prometheus-scrape-anet", "PROMETHEUS_SCRAPE_ANET", false, "Whether to scrape anet pods.")
 	flags.BoolEnvVar(&p.ScrapeCiliumOperator, "prometheus-scrape-cilium-operator", "PROMETHEUS_SCRAPE_CILIUM_OPERATOR", false, "Whether to scrape cilium-operator pods.")
+	flags.BoolEnvVar(&p.PushStepsCheckpointMetrics, "push-steps-checkpoint-metrics", "TBD", false, "TODO")
 	flags.IntEnvVar(&p.APIServerScrapePort, "prometheus-apiserver-scrape-port", "PROMETHEUS_APISERVER_SCRAPE_PORT", 443, "Port for scraping kube-apiserver (default 443).")
 	flags.StringEnvVar(&p.SnapshotProject, "experimental-snapshot-project", "PROJECT", "", "GCP project used where disks and snapshots are located.")
 	flags.StringEnvVar(&p.ManifestPath, "prometheus-manifest-path", "PROMETHEUS_MANIFEST_PATH", "$GOPATH/src/k8s.io/perf-tests/clusterloader2/pkg/prometheus/manifests", "Path to the prometheus manifest files.")
@@ -78,6 +80,7 @@ func ValidatePrometheusFlags(p *config.PrometheusConfig) *clerrors.ErrorList {
 	if *shouldSnapshotPrometheusDisk && p.SnapshotProject == "" {
 		errList.Append(fmt.Errorf("requesting snapshot, but snapshot project not configured. Use --experimental-snapshot-project flag"))
 	}
+	// TODO(azylinski): if "push-steps-checkpoint-metrics" is ON, the pushgateway must be enabled
 	return errList
 }
 
@@ -499,4 +502,35 @@ func getMasterIpsFromKubernetesService(clusterConfig config.ClusterConfig) ([]st
 
 func isEtcdEndpoint(endpoint string) bool {
 	return endpoint == "etcd-2379" || endpoint == "etcd-2382"
+}
+
+func (pc *Controller) PushStepCheckpointMetricsIfEnabled(step *api.Step) {
+	// TODO: check if enabled
+
+  stepStartedMetric := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "cl_step_start_timestamp_seconds",
+		Help: "The timestamp when ClusterLoader step started, in unix micros",
+  },
+  []string{
+		"config", // one of: load | huge-service | ...
+		"name", // e.g.: "Deleting PriorityClass for DaemonSets"
+		"index", // (uint) an index of a step as listed in buildfile, e.g.: "ClusterLoaderV2: load: [step: %d]"
+  })
+
+	// TODO: set labels/tags based on step
+	stepStartedMetric.With(
+		prometheus.Labels{
+			"name": step.Name,
+		},
+	).SetToCurrentTime()
+
+	// V1: https://stackoverflow.com/a/61194943
+	if err := push.New("http://localhost:9091/", "db_backup").
+		Collector(stepStartedMetric).
+		Grouping("db", "customers").
+		Push(); err != nil {
+		fmt.Println("Could not push completion time to Pushgateway:", err)
+	}
+
+	// V2: https://source.corp.google.com/piper///depot/google3/cloud/kubernetes/distro/containers/scraper/pkg/writer/prometheus.go;l=37
 }

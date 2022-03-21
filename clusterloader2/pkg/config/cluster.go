@@ -80,6 +80,7 @@ type PrometheusConfig struct {
 	ScrapeNodeLocalDNS         bool
 	ScrapeAnet                 bool
 	ScrapeCiliumOperator       bool
+	PushStepsCheckpointMetrics bool
 	APIServerScrapePort        int
 	SnapshotProject            string
 	ManifestPath               string
