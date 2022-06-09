@@ -36,6 +36,8 @@
 steps:
 - name: "{{$action}}ing measurements"
   measurements:
+  - Identifier: Timer
+    Method: Timer
   - Identifier: APIResponsivenessPrometheus
     Method: APIResponsivenessPrometheus
     Params:
